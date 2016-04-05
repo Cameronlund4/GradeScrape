@@ -5,34 +5,79 @@ import com.sun.javafx.scene.control.skin.TableHeaderRow;
 import java.io.IOException;
 
 public class GradeScrape {
-	private static GradeScrapeManager instance;
+	private static GradeScrapeProgressbook instance;
 
 	public static void main(String args[])
 	{
 		Student cameron = new Student("Cameron", "Lund", "footballfan12", "Thesock#12");
-		instance = new GradeScrapeManager(cameron);
+		instance = new GradeScrapeProgressbook(cameron);
 	}
 
-	public static GradeScrapeManager getManager()
+	public static GradeScrapeProgressbook getProgressbookScrape()
 	{
 		return instance;
 	}
 
-	private static class GradeScrapeManager {
+	private static class GradeScrapeProgressbook {
 		final WebClient webClient;
 		final Student student;
 
-		GradeScrapeManager(Student student)
+		GradeScrapeProgressbook(Student student)
 		{
 			webClient = new WebClient();
 			this.student = student;
 			outputMarkingPeriodGrades();
 		}
 
+		private HtmlPage logIntoProgressbook(Student student) throws IOException
+		{
+			final HtmlPage page = webClient.getPage(ParentAccessPage.BASE);
+
+			// If we're at the home page
+			if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN) ||
+					page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN_EXTENDED))
+			{
+				// Get login text fields
+				final HtmlTextInput userName = (HtmlTextInput) page.getElementById("UserName");
+				final HtmlPasswordInput password = (HtmlPasswordInput) page.getElementById("Password");
+
+				// Fill text files with user/password
+				userName.setValueAttribute(student.getUsername());
+				password.setValueAttribute(student.getPassword());
+
+				// Submit and check result
+				final HtmlButton button = page.getFirstByXPath("//button[@type='submit']");
+				final HtmlPage result = button.click();
+				if (result.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
+					return result;
+			}
+
+			// If we're at the planner
+			if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
+				return page;
+
+			return null;
+		}
+
+
+		private HtmlPage goToPage(WebClient client, String page, String expectedResult) throws IOException
+		{
+			final HtmlPage htmlPage = goToPage(client, page);
+			if (htmlPage.getUrl().toString().equalsIgnoreCase(expectedResult)) {
+				return htmlPage;
+			}
+			return null;
+		}
+
+		private HtmlPage goToPage(WebClient client, String page) throws IOException
+		{
+			return client.getPage(page);
+		}
+
 		public void outputMarkingPeriodGrades()
 		{
 			webClient.getCookieManager().setCookiesEnabled(true);
-			String nextPage = "https://parentaccess.chclc.org/";
+			String nextPage = ParentAccessPage.BASE;
 			while (true)
 			{
 				final HtmlPage page;
