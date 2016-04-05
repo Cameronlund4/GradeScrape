@@ -4,6 +4,7 @@ import info.cameronlund.gradescrape.parentaccess.ParentAccessPage;
 import info.cameronlund.gradescrape.parentaccess.ParentAccessSite;
 import info.cameronlund.gradescrape.user.Credentials;
 
+// The subclass GradeScrapeProgressBook is obsolete... Check classes under api and parentaccess packages
 import java.io.IOException;
 
 public class GradeScrape {
@@ -11,7 +12,7 @@ public class GradeScrape {
 
 	public static void main(String args[])
 	{
-		Student cameron = new Student("Cameron", "Lund", "footballfan12", "Thesock#12");
+		Student cameron = new Student("Cameron", "Lund", "<redacted>", "<redacted>");
 		//instance = new GradeScrapeProgressbook(cameron);
 		new ParentAccessSite(new info.cameronlund.gradescrape.user.Student("Cameron","Lund"),
 				new Credentials("footballfan12","Thesock#12"));
