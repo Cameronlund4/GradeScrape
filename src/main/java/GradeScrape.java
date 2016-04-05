@@ -15,7 +15,7 @@ public class GradeScrape {
 		Student cameron = new Student("Cameron", "Lund", "<redacted>", "<redacted>");
 		//instance = new GradeScrapeProgressbook(cameron);
 		new ParentAccessSite(new info.cameronlund.gradescrape.user.Student("Cameron","Lund"),
-				new Credentials("footballfan12","Thesock#12"));
+				new Credentials("<redacted>","<redacted>"));
 	}
 
 	public static GradeScrapeProgressbook getProgressbookScrape()
