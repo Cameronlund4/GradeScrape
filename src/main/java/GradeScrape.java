@@ -1,20 +1,41 @@
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
+import info.cameronlund.gradescrape.api.MarkingPeriod;
+import info.cameronlund.gradescrape.parentaccess.Grade;
 import info.cameronlund.gradescrape.parentaccess.ParentAccessPage;
 import info.cameronlund.gradescrape.parentaccess.ParentAccessSite;
 import info.cameronlund.gradescrape.user.Credentials;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class GradeScrape {
 	private static GradeScrapeProgressbook instance;
 
 	public static void main(String args[])
 	{
-		Student cameron = new Student("Cameron", "Lund", "footballfan12", "Thesock#12");
+		Student cameron = new Student("Cameron", "Lund", "<redacted>", "<redacted>");
 		//instance = new GradeScrapeProgressbook(cameron);
-		new ParentAccessSite(new info.cameronlund.gradescrape.user.Student("Cameron","Lund"),
-				new Credentials("footballfan12","Thesock#12"));
+		info.cameronlund.gradescrape.user.Student newCameron = new info.cameronlund.gradescrape.user.Student("Cameron", "Lund");
+		newCameron.giveCredentials("parent_access", new Credentials("<redacted>", "<redacted>"));
+		ParentAccessSite site = new ParentAccessSite(newCameron);
+
+		System.out.println("Login success: "+site.auth());
+		System.out.println("Confirmation: "+site.isAuth());
+
+		Map<String, Grade> grades = site.getClassGrades(MarkingPeriod.FIRST);
+		System.out.println("----- Grades -----");
+		for (String klassen : grades.keySet())
+		{
+			Grade grade = grades.get(klassen);
+			if (grade != null)
+				System.out.println(klassen+": "+grade.getNumericalGrade()+" ("+grade.getLetterGrade()+")");
+			else
+				System.out.println(klassen+": N/A");
+		}
+
+		System.out.println("Logout success: "+!site.unauth());
+		System.out.println("Confirmation: "+!site.isAuth());
 	}
 
 	public static GradeScrapeProgressbook getProgressbookScrape()

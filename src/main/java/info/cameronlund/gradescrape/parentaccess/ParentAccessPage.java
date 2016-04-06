@@ -11,4 +11,6 @@ public class ParentAccessPage {
 	public static final String PLANNER = "https://parentaccess.chclc.org/ParentAccess/student/planner";
 
 	public static final String GRADES = "https://parentaccess.chclc.org/ParentAccess/student/grades";
+
+	public static final String LOGOUT = "https://parentaccess.chclc.org/ParentAccess/signout";
 }
