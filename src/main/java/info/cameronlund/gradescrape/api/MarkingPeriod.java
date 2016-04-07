@@ -1,5 +1,19 @@
 package info.cameronlund.gradescrape.api;
 
 public enum MarkingPeriod {
-	FIRST, SECOND, THIRD, FOURTH;
+	FIRST("MP1"), SECOND("MP2"), THIRD("MP3"), FOURTH("MP4");
+
+	private final String lowName;
+
+	private MarkingPeriod(final String lowName)
+	{
+		this.lowName = lowName;
+	}
+
+	// Name commonly used for data, not to be shown to users
+	public String getLowName()
+	{
+		return lowName;
+	}
+
 }

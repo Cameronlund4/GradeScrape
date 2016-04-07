@@ -34,11 +34,20 @@ public class ScrapableSite {
 		String[] expected = expectedResult.replace("http://", "").replace("https://", "").split("/");
 		for (int i = 0; i < original.length; i++)
 		{
+			if (i > expected.length-1) return false; // This causes false if original has more sections than expected
 			if (expected[i].equalsIgnoreCase("*")) continue;
-			if (!original[i].equalsIgnoreCase(expected[i]))
+			if (!isUrlPartSame(original[i], expected[i]))
+			{
 				return false;
+			}
 		}
 		return true;
+	}
+
+	// Override and super call this if you want to add custom conditions before we result to equals checks
+	public boolean isUrlPartSame(String result, String expected)
+	{
+		return expected.equalsIgnoreCase(result);
 	}
 
 	public void printPage(HtmlPage page, boolean removeNewline)

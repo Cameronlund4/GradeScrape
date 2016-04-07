@@ -1,200 +1,27 @@
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.*;
-import info.cameronlund.gradescrape.api.MarkingPeriod;
-import info.cameronlund.gradescrape.parentaccess.Grade;
-import info.cameronlund.gradescrape.parentaccess.ParentAccessPage;
-import info.cameronlund.gradescrape.parentaccess.ParentAccessSite;
-import info.cameronlund.gradescrape.user.Credentials;
-
-import java.io.IOException;
-import java.util.Map;
+import info.cameronlund.bettergrades.HttpPortal;
 
 public class GradeScrape {
-	private static GradeScrapeProgressbook instance;
+	private static long lastTimeChecked = System.currentTimeMillis();
 
 	public static void main(String args[])
 	{
-		Student cameron = new Student("Cameron", "Lund", "<redacted>", "<redacted>");
-		//instance = new GradeScrapeProgressbook(cameron);
-		info.cameronlund.gradescrape.user.Student newCameron = new info.cameronlund.gradescrape.user.Student("Cameron", "Lund");
-		newCameron.giveCredentials("parent_access", new Credentials("<redacted>", "<redacted>"));
-		ParentAccessSite site = new ParentAccessSite(newCameron);
-
-		System.out.println("Login success: "+site.auth());
-		System.out.println("Confirmation: "+site.isAuth());
-
-		Map<String, Grade> grades = site.getClassGrades(MarkingPeriod.FIRST);
-		System.out.println("----- Grades -----");
-		for (String klassen : grades.keySet())
-		{
-			Grade grade = grades.get(klassen);
-			if (grade != null)
-				System.out.println(klassen+": "+grade.getNumericalGrade()+" ("+grade.getLetterGrade()+")");
-			else
-				System.out.println(klassen+": N/A");
-		}
-
-		System.out.println("Logout success: "+!site.unauth());
-		System.out.println("Confirmation: "+!site.isAuth());
+		new HttpPortal().start();
 	}
 
-	public static GradeScrapeProgressbook getProgressbookScrape()
+	public static void startNewTask()
 	{
-		return instance;
+		System.out.println("-----Task speed test-----");
+		lastTimeChecked = System.currentTimeMillis();
 	}
 
-	private static class GradeScrapeProgressbook {
-		final WebClient webClient;
-		final Student student;
+	public static void printTaskTime(String task)
+	{
+		System.out.println("Completed task: "+task);
+		System.out.println("Task took "+getTimePassed()+" seconds");
+	}
 
-		GradeScrapeProgressbook(Student student)
-		{
-			webClient = new WebClient();
-			this.student = student;
-			outputMarkingPeriodGrades();
-		}
-
-		private HtmlPage logIntoProgressbook(Student student) throws IOException
-		{
-			final HtmlPage page = webClient.getPage(ParentAccessPage.BASE);
-
-			// If we're at the home page
-			if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN) ||
-					page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN_EXTENDED))
-			{
-				// Get login text fields
-				final HtmlTextInput userName = (HtmlTextInput) page.getElementById("UserName");
-				final HtmlPasswordInput password = (HtmlPasswordInput) page.getElementById("Password");
-
-				// Fill text files with user/password
-				userName.setValueAttribute(student.getUsername());
-				password.setValueAttribute(student.getPassword());
-
-				// Submit and check result
-				final HtmlButton button = page.getFirstByXPath("//button[@type='submit']");
-				final HtmlPage result = button.click();
-				if (result.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
-					return result;
-			}
-
-			// If we're at the planner
-			if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
-				return page;
-
-			return null;
-		}
-
-
-		private HtmlPage goToPage(WebClient client, String page, String expectedResult) throws IOException
-		{
-			final HtmlPage htmlPage = goToPage(client, page);
-			if (htmlPage.getUrl().toString().equalsIgnoreCase(expectedResult)) {
-				return htmlPage;
-			}
-			return null;
-		}
-
-		private HtmlPage goToPage(WebClient client, String page) throws IOException
-		{
-			return client.getPage(page);
-		}
-
-		public void outputMarkingPeriodGrades()
-		{
-			webClient.getCookieManager().setCookiesEnabled(true);
-			String nextPage = ParentAccessPage.BASE;
-			while (true)
-			{
-				final HtmlPage page;
-				try
-				{
-					page = webClient.getPage(nextPage);
-
-					// If we're at the home page
-					if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN) ||
-							page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGIN_SCREEN_EXTENDED))
-					{
-						final HtmlTextInput userName = (HtmlTextInput) page.getElementById("UserName");
-						final HtmlPasswordInput password = (HtmlPasswordInput) page.getElementById("Password");
-
-						userName.setValueAttribute(student.getUsername());
-						password.setValueAttribute(student.getPassword());
-
-						final HtmlButton button = page.getFirstByXPath("//button[@type='submit']");
-						final HtmlPage result = button.click();
-						if (result.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
-						{
-							System.out.println("Login success");
-							nextPage = ParentAccessPage.GRADES;
-							continue;
-						}
-						else
-						{
-							System.out.println("Login failure, returned page: "+page.getUrl());
-							return;
-						}
-					}
-
-					// If we're at the planner
-					if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.PLANNER))
-					{
-						System.out.println("Planner success");
-						return;
-					}
-
-					// If we're at the grades
-					if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.GRADES))
-					{
-						System.out.println("Grades success");
-
-						// For loops to the extreme, sorry ;)
-						for (Object capture : page.getByXPath("//table[@class='table table-striped table-condensed']"))
-						{ // Loops tables
-							HtmlTable gradeTable = (HtmlTable) capture;
-							HtmlTableBody gradeBody = null;
-							for (DomElement tbody : gradeTable.getChildElements()) {
-								if (tbody instanceof HtmlTableBody) {
-									gradeBody = (HtmlTableBody) tbody;
-									break;
-								}
-							}
-							System.out.println("    Grades:");
-
-							for (final DomElement row : gradeBody.getChildElements())
-							{ // Loop
-								for (final DomElement element : row.getChildElements())
-								{
-									if (!(element instanceof HtmlTableDataCell)) continue;
-									if (!element.getAttribute("class").equalsIgnoreCase("fixed-column important"))
-										continue;
-
-									DomElement gradeElement = element.getFirstElementChild();
-
-									String gradeRaw = gradeElement.getTextContent().replaceAll("[\\s]", "");
-									String gradeNumber = gradeRaw.replaceAll("[^0-9?!\\.]", "");
-									String gradeLetter = gradeRaw.replace(gradeNumber, "");
-									System.out.println("        "+"class"+": "+gradeNumber+" ("+gradeLetter+")");
-								}
-							/*
-							String gradeRaw = ((HtmlElement)((HtmlElement)
-									row.getFirstByXPath("//td[@class='fixed-column important']"))
-									.getFirstByXPath("//span[@class='expandable-row']")).getTextContent().replaceAll("[\\s]","");
-							String gradeNumber = gradeRaw.replaceAll("[^0-9?!\\.]","");
-							String gradeLetter = gradeRaw.replace(gradeNumber,"");
-							System.out.println("        "+"class"+": "+gradeNumber+" ("+gradeLetter+")");
-							*/
-							}
-						}
-						return;
-					}
-
-					System.out.println("Hmmm, not recognized: "+page.getUrl());
-					return;
-				} catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
+	public static double getTimePassed()
+	{
+		return ((double) (System.currentTimeMillis()-lastTimeChecked)) / 1000D;
 	}
 }

@@ -10,17 +10,20 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO Rework so we don't need to re-get the same html for individual class grades
+// TODO Maybe a ReadData object that caches pages to urls and get reused if we don't need to read
 public class ParentAccessSite extends AuthenticatedSite {
-	private boolean isAuthenticated = false;
-
 	public ParentAccessSite(Student student) throws AuthenticationFailedException
 	{
-		super(student, "parent_access");
+		super(student, "parent_access", 1000 * 15); //*60*10); // 10 minute idle
 		shutup();
 	}
 
 	public Map<String, Grade> getClassGrades(MarkingPeriod period)
 	{
+		checkAuth();
+		resetIdleCountdown();
+
 		Map<String, Grade> grades = new HashMap<String, Grade>();
 		final HtmlPage page;
 		try
@@ -34,7 +37,6 @@ public class ParentAccessSite extends AuthenticatedSite {
 
 		// If we're at the grades
 		if (!isPage(page, ParentAccessPage.GRADES)) return grades;
-		System.out.println("Grades success");
 
 		HtmlTableBody markingPeriod = null;
 		if (period == MarkingPeriod.FIRST)
@@ -45,21 +47,19 @@ public class ParentAccessSite extends AuthenticatedSite {
 			markingPeriod = page.getFirstByXPath(ParentAccessXpath.GRADE_MP3);
 		if (period == MarkingPeriod.FOURTH)
 			markingPeriod = page.getFirstByXPath(ParentAccessXpath.GRADE_MP4);
-		System.out.println("    Grades:");
-
 		for (final DomElement row : markingPeriod.getChildElements())
 		{ // Loop
 			String klassen = "";
 			Grade grade = null;
 			for (final DomElement element : row.getChildElements())
-			{
+				inspectElement:{
 				if (!(element instanceof HtmlTableDataCell)) continue;
 				if (element.getAttribute("class").equalsIgnoreCase("fixed-column important"))
 				{
 					DomElement gradeElement = element.getFirstElementChild();
 
 					String gradeRaw = gradeElement.getTextContent().replaceAll("[\\s]", "");
-					if (gradeRaw.length() < 1) continue;
+					if (gradeRaw.length() < 1) break inspectElement; // If no grade is set just keep'er goin
 					String gradeNumber = gradeRaw.replaceAll("[^0-9?!\\.]", "");
 					String gradeLetter = gradeRaw.replace(gradeNumber, "");
 					grade = new Grade(gradeLetter, Double.parseDouble(gradeNumber));
@@ -68,7 +68,6 @@ public class ParentAccessSite extends AuthenticatedSite {
 				{
 					DomElement classElement = element.getFirstElementChild().getFirstElementChild();
 					if (classElement == null) continue;
-					System.out.println(classElement.getTextContent());
 					if (!classElement.getTextContent().toLowerCase().contains("see all details"))
 						klassen = formatClass(classElement.getTextContent());
 				}
@@ -81,9 +80,11 @@ public class ParentAccessSite extends AuthenticatedSite {
 
 	public boolean auth()
 	{
+		resetIdleCountdown();
+
 		try
 		{
-			final HtmlPage page = getClient().getPage(ParentAccessPage.BASE);
+			final HtmlPage page = goToPage(ParentAccessPage.BASE);
 
 			// If we're at the home page
 			if (isPage(page, ParentAccessPage.LOGIN_SCREEN) ||
@@ -98,13 +99,11 @@ public class ParentAccessSite extends AuthenticatedSite {
 				final HtmlPage result = button.click();
 
 				// If we're at the planner, we logged in right
-				isAuthenticated = isPage(result, ParentAccessPage.PLANNER);
-				return isAuth();
+				return setAuthState(isPage(result, ParentAccessPage.PLANNER));
 			}
 
 			// If we're at the planner, we logged in right
-			isAuthenticated = isPage(page, ParentAccessPage.PLANNER);
-			return isAuth();
+			return setAuthState(isPage(page, ParentAccessPage.PLANNER));
 		} catch (IOException e)
 		{
 			e.printStackTrace();
@@ -116,22 +115,35 @@ public class ParentAccessSite extends AuthenticatedSite {
 	{
 		try
 		{
-			final HtmlPage page = getClient().getPage(ParentAccessPage.LOGOUT);
+			final HtmlPage page = goToPage(ParentAccessPage.LOGOUT);
 
 			// If we're at the logout page
-			isAuthenticated = !isPage(page, ParentAccessPage.LOGOUT);
-			return isAuth();
+			return setAuthState(!isPage(page, ParentAccessPage.LOGOUT));
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		isAuthenticated = true;
-		return isAuth();
+		return setAuthState(true);
 	}
 
-	public boolean isAuth()
+	public boolean updateAuth()
 	{
-		return isAuthenticated;
+		resetIdleCountdown();
+		try
+		{
+			final HtmlPage page = goToPage(ParentAccessPage.BASE);
+			// Basically, if we're at a login screen
+			if (!(!isPage(page, ParentAccessPage.LOGIN_SCREEN) &&
+					!isPage(page, ParentAccessPage.LOGIN_SCREEN_EXTENDED)))
+			{
+				return auth();
+			}
+			else return setAuthState(true);
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	public String formatClass(String classRaw)
@@ -139,5 +151,11 @@ public class ParentAccessSite extends AuthenticatedSite {
 		if (classRaw.contains(" -"))
 			return classRaw.substring(0, classRaw.indexOf(" -"));
 		return classRaw;
+	}
+
+	@Override
+	public boolean hasAuthExpired()
+	{
+		return super.hasAuthExpired();
 	}
 }
