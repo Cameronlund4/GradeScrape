@@ -35,6 +35,13 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>GoogleRepo</id>
+            <url>http://mvnrepository.com/artifact/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>net.sourceforge.htmlunit</groupId>

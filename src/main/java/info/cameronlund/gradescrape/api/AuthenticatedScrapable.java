@@ -1,22 +1,24 @@
 package info.cameronlund.gradescrape.api;
 
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import info.cameronlund.gradescrape.user.Credentials;
 import info.cameronlund.gradescrape.user.Student;
 
-public abstract class AuthenticatedSite extends ScrapableSite {
+public abstract class AuthenticatedScrapable extends Scrapable
+{
 	private final String credentialKey;
 	private final Credentials credentials;
 	private long lastInteraction;
 	private long authExpireTimeMillis;
 	private boolean isAuthenticated = false;
 
-	public AuthenticatedSite(Student student, String credentialKey, long authExpireTimeMillis)
+	public AuthenticatedScrapable(Student student, String credentialKey, long authExpireTimeMillis)
 	{
 		super(student);
 		this.credentialKey = credentialKey;
 		this.credentials = student.getCredentials(credentialKey);
 		this.authExpireTimeMillis = authExpireTimeMillis;
-		lastInteraction = System.currentTimeMillis()-authExpireTimeMillis-1; // Make sure our authentication requires recheck
+		lastInteraction = System.currentTimeMillis() - authExpireTimeMillis - 1; // Make sure our authentication requires recheck
 	}
 
 	public String getUsername()
@@ -41,18 +43,7 @@ public abstract class AuthenticatedSite extends ScrapableSite {
 
 	public boolean hasAuthExpired()
 	{
-		return System.currentTimeMillis()-lastInteraction > authExpireTimeMillis;
-	}
-
-	// If our boolean auth is expired, recheck our status. If not, use our current boolean
-	public boolean checkAuth()
-	{
-		if (!isAuth()) return false; // If we locally think we're unauth, we probably are
-		// If we need to recheck our auth status
-		if (hasAuthExpired())
-			return updateAuth();
-			// If we don't need to recheck our auth
-		else return isAuth();
+		return System.currentTimeMillis() - lastInteraction > authExpireTimeMillis;
 	}
 
 	private boolean isAuth()
@@ -60,6 +51,7 @@ public abstract class AuthenticatedSite extends ScrapableSite {
 		return isAuthenticated;
 	}
 
+	// Useful to set the auth state in a return call
 	public boolean setAuthState(boolean authenticated)
 	{
 		isAuthenticated = authenticated;
@@ -73,6 +65,25 @@ public abstract class AuthenticatedSite extends ScrapableSite {
 		lastInteraction = System.currentTimeMillis();
 	}
 
+	// Will authenticate if needed, otherwise return current state
+	// SHOULD NOT call resetIdleCountdown()
+	public boolean checkAuth()
+	{
+		// If we need to reload our auth status
+		if (hasAuthExpired() || !isAuth())
+			return auth();
+
+		return isAuth();
+	}
+
+	/// Should check the page's elements to tell if we're logged in if possible
+	// SHOULD call resetIdleCountdown()
+	// SHOULD be used on newish pages
+	public boolean checkAuth(final HtmlPage page)
+	{
+		return isAuth();
+	}
+
 	// Should return whether or not authentication was successful
 	// SHOULD call resetIdleCountdown()
 	public abstract boolean auth();
@@ -80,8 +91,4 @@ public abstract class AuthenticatedSite extends ScrapableSite {
 	// Should return wether or not unauthentication was successful
 	// SHOULD NOT call resetIdleCountdown()
 	public abstract boolean unauth();
-
-	// Should handle making sure auth is up-to-date.
-	// SHOULD call resetIdleCountdown()
-	public abstract boolean updateAuth();
 }

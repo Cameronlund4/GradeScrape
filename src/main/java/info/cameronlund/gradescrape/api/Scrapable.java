@@ -15,12 +15,16 @@ import org.w3c.css.sac.ErrorHandler;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.HashMap;
 import java.util.logging.Level;
 
-public class ScrapableSite {
+public class Scrapable
+{
 	private final Student student;
+	private HashMap<String, HtmlPage> cache = new HashMap<String, HtmlPage>();
+	private HashMap<String, Long> cachedAge = new HashMap<String, Long>();
 
-	public ScrapableSite(Student student)
+	public Scrapable(Student student)
 	{
 		this.student = student;
 	}
@@ -34,7 +38,7 @@ public class ScrapableSite {
 		String[] expected = expectedResult.replace("http://", "").replace("https://", "").split("/");
 		for (int i = 0; i < original.length; i++)
 		{
-			if (i > expected.length-1) return false; // This causes false if original has more sections than expected
+			if (i > expected.length - 1) return false; // This causes false if original has more sections than expected
 			if (expected[i].equalsIgnoreCase("*")) continue;
 			if (!isUrlPartSame(original[i], expected[i]))
 			{
@@ -56,9 +60,46 @@ public class ScrapableSite {
 				: page.getWebResponse().getContentAsString());
 	}
 
-	public HtmlPage goToPage(String page) throws IOException
+	// This is the best method to use if you don't need extremely up to date info
+	public HtmlPage getPage(String page) throws IOException
 	{
-		return getClient().getPage(page);
+		if (cache.containsKey(page))
+			return cache.get(page);
+		else
+			return getNewPage(page);
+	}
+
+	// This is the best method to use if you are using data that needs to be up to date
+	public HtmlPage getPage(String page, long maxAge) throws IOException
+	{
+		long pageAge = getAge(page);
+		if (pageAge > -1 || pageAge <= maxAge)
+		{ // If we already have this page and it's young enough
+			return getPage(page);
+		}
+		return getNewPage(page);
+	}
+
+	// Should really use getPage(String, long) unless you absolutely need a new page
+	public HtmlPage getNewPage(String page) throws IOException
+	{
+		HtmlPage htmlPage = getClient().getPage(page);
+		cache.put(page, htmlPage);
+		cachedAge.put(page, System.currentTimeMillis());
+		return htmlPage;
+	}
+
+	public long getAge(String page)
+	{
+		if (cachedAge.containsKey(page))
+		{
+			return cachedAge.get(page);
+		} else return -1;
+	}
+
+	public void clearCache()
+	{
+		cache = new HashMap<String, HtmlPage>();
 	}
 
 	public Student getStudent()
@@ -71,6 +112,7 @@ public class ScrapableSite {
 		return getStudent().getClient();
 	}
 
+	// Gets rid of highly annoying console spam from HtmlUnit
 	public void shutup()
 	{
 		LogFactory.getFactory().setAttribute("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
@@ -78,12 +120,14 @@ public class ScrapableSite {
 		java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
 		java.util.logging.Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
 
-		getClient().setIncorrectnessListener(new IncorrectnessListener() {
+		getClient().setIncorrectnessListener(new IncorrectnessListener()
+		{
 			public void notify(String arg0, Object arg1)
 			{
 			}
 		});
-		getClient().setCssErrorHandler(new ErrorHandler() {
+		getClient().setCssErrorHandler(new ErrorHandler()
+		{
 			public void warning(CSSParseException exception) throws CSSException
 			{
 			}
@@ -97,7 +141,8 @@ public class ScrapableSite {
 
 			}
 		});
-		getClient().setJavaScriptErrorListener(new JavaScriptErrorListener() {
+		getClient().setJavaScriptErrorListener(new JavaScriptErrorListener()
+		{
 			public void scriptException(InteractivePage interactivePage, ScriptException e)
 			{
 			}
@@ -114,7 +159,8 @@ public class ScrapableSite {
 			{
 			}
 		});
-		getClient().setHTMLParserListener(new HTMLParserListener() {
+		getClient().setHTMLParserListener(new HTMLParserListener()
+		{
 			public void error(String s, java.net.URL url, String s1, int i, int i1, String s2)
 			{
 			}

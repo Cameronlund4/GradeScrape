@@ -1,7 +1,7 @@
 package info.cameronlund.gradescrape.parentaccess;
 
 import com.gargoylesoftware.htmlunit.html.*;
-import info.cameronlund.gradescrape.api.AuthenticatedSite;
+import info.cameronlund.gradescrape.api.AuthenticatedScrapable;
 import info.cameronlund.gradescrape.api.AuthenticationFailedException;
 import info.cameronlund.gradescrape.api.MarkingPeriod;
 import info.cameronlund.gradescrape.user.Student;
@@ -10,33 +10,37 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-// TODO Rework so we don't need to re-get the same html for individual class grades
-// TODO Maybe a ReadData object that caches pages to urls and get reused if we don't need to read
-public class ParentAccessSite extends AuthenticatedSite {
-	public ParentAccessSite(Student student) throws AuthenticationFailedException
+public class ParentAccessScrape extends AuthenticatedScrapable
+{
+	public ParentAccessScrape(Student student) throws AuthenticationFailedException
 	{
 		super(student, "parent_access", 1000 * 15); //*60*10); // 10 minute idle
 		shutup();
 	}
 
+	/**
+	 *
+	 * Scraping methods
+	 *
+	 **/
+
 	public Map<String, Grade> getClassGrades(MarkingPeriod period)
 	{
 		checkAuth();
 		resetIdleCountdown();
-
 		Map<String, Grade> grades = new HashMap<String, Grade>();
+
+		// Get the page for grades
 		final HtmlPage page;
 		try
 		{
-			page = goToPage(ParentAccessPage.GRADES);
+			page = getPage(ParentAccessPage.GRADES);
+			if (!isPage(page, ParentAccessPage.GRADES)) return grades; // Return if wrong
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 			return grades;
 		}
-
-		// If we're at the grades
-		if (!isPage(page, ParentAccessPage.GRADES)) return grades;
 
 		HtmlTableBody markingPeriod = null;
 		if (period == MarkingPeriod.FIRST)
@@ -59,7 +63,7 @@ public class ParentAccessSite extends AuthenticatedSite {
 					DomElement gradeElement = element.getFirstElementChild();
 
 					String gradeRaw = gradeElement.getTextContent().replaceAll("[\\s]", "");
-					if (gradeRaw.length() < 1) break inspectElement; // If no grade is set just keep'er goin
+					if (gradeRaw.length() < 1) break inspectElement; // If no grade is set just keep'er going
 					String gradeNumber = gradeRaw.replaceAll("[^0-9?!\\.]", "");
 					String gradeLetter = gradeRaw.replace(gradeNumber, "");
 					grade = new Grade(gradeLetter, Double.parseDouble(gradeNumber));
@@ -78,24 +82,30 @@ public class ParentAccessSite extends AuthenticatedSite {
 		return grades;
 	}
 
+	/**
+	 *
+	 * Authentication methods
+	 *
+	 **/
+
+	@Override
 	public boolean auth()
 	{
 		resetIdleCountdown();
 
 		try
 		{
-			final HtmlPage page = goToPage(ParentAccessPage.BASE);
+			final HtmlPage page = getPage(ParentAccessPage.BASE);
 
 			// If we're at the home page
-			if (isPage(page, ParentAccessPage.LOGIN_SCREEN) ||
-					isPage(page, ParentAccessPage.LOGIN_SCREEN_EXTENDED))
+			if (!checkAuth(page))
 			{
 				// Manipulate the form and get the results
 				final HtmlTextInput userName = (HtmlTextInput) page.getElementById("UserName");
 				final HtmlPasswordInput password = (HtmlPasswordInput) page.getElementById("Password");
 				userName.setValueAttribute(getUsername());
 				password.setValueAttribute(getPassword());
-				final HtmlButton button = page.getFirstByXPath("//*[@id=\"login_form\"]/fieldset/div[3]/div/button");
+				final HtmlButton button = page.getFirstByXPath(ParentAccessXpath.LOGIN_BUTTON);
 				final HtmlPage result = button.click();
 
 				// If we're at the planner, we logged in right
@@ -111,46 +121,26 @@ public class ParentAccessSite extends AuthenticatedSite {
 		return false;
 	}
 
+	@Override
 	public boolean unauth()
 	{
 		try
 		{
-			final HtmlPage page = goToPage(ParentAccessPage.LOGOUT);
-
-			// If we're at the logout page
-			return setAuthState(!isPage(page, ParentAccessPage.LOGOUT));
+			final HtmlPage page = getPage(ParentAccessPage.LOGOUT);
+			return !setAuthState(checkAuth(page));
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		return setAuthState(true);
+		return setAuthState(false);
 	}
 
-	public boolean updateAuth()
+	@Override
+	public boolean checkAuth(HtmlPage page)
 	{
-		resetIdleCountdown();
-		try
-		{
-			final HtmlPage page = goToPage(ParentAccessPage.BASE);
-			// Basically, if we're at a login screen
-			if (!(!isPage(page, ParentAccessPage.LOGIN_SCREEN) &&
-					!isPage(page, ParentAccessPage.LOGIN_SCREEN_EXTENDED)))
-			{
-				return auth();
-			}
-			else return setAuthState(true);
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-			return false;
-		}
-	}
-
-	public String formatClass(String classRaw)
-	{
-		if (classRaw.contains(" -"))
-			return classRaw.substring(0, classRaw.indexOf(" -"));
-		return classRaw;
+		return !(isPage(page, ParentAccessPage.LOGIN_SCREEN) ||
+				page.getUrl().toString().contains("?returnUrl="))
+				&& page.getFirstByXPath(ParentAccessXpath.LOGOUT_BUTTON) != null;
 	}
 
 	@Override
@@ -158,4 +148,19 @@ public class ParentAccessSite extends AuthenticatedSite {
 	{
 		return super.hasAuthExpired();
 	}
+
+	/**
+	 *
+	 * Formatting methods
+	 *
+	 */
+
+	private String formatClass(String classRaw)
+	{
+		if (classRaw.contains(" -"))
+			return classRaw.substring(0, classRaw.indexOf(" -"));
+		return classRaw;
+	}
+
+
 }
