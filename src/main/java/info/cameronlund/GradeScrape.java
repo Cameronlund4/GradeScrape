@@ -1,3 +1,5 @@
+package info.cameronlund;
+
 import info.cameronlund.bettergrades.HttpPortal;
 
 public class GradeScrape {

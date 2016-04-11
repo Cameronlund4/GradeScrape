@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.api;
+package info.cameronlund.gradescrape.api.v1.scrapables;
 
 import com.gargoylesoftware.htmlunit.IncorrectnessListener;
 import com.gargoylesoftware.htmlunit.InteractivePage;
@@ -7,7 +7,7 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HTMLParserListener;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
-import info.cameronlund.gradescrape.user.Student;
+import info.cameronlund.gradescrape.api.v1.user.Student;
 import org.apache.commons.logging.LogFactory;
 import org.w3c.css.sac.CSSException;
 import org.w3c.css.sac.CSSParseException;

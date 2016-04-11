@@ -15,7 +15,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>GradeScrape</mainClass>
+                            <mainClass>info.cameronlund.GradeScrape</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

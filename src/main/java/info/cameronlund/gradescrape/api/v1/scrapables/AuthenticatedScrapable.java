@@ -1,8 +1,8 @@
-package info.cameronlund.gradescrape.api;
+package info.cameronlund.gradescrape.api.v1.scrapables;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import info.cameronlund.gradescrape.user.Credentials;
-import info.cameronlund.gradescrape.user.Student;
+import info.cameronlund.gradescrape.api.v1.user.Credentials;
+import info.cameronlund.gradescrape.api.v1.user.Student;
 
 public abstract class AuthenticatedScrapable extends Scrapable
 {

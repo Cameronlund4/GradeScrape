@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.user;
+package info.cameronlund.gradescrape.api.v1.user;
 
 public class Credentials {
 	final private String username;

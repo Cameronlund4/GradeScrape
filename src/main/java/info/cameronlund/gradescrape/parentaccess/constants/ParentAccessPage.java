@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.parentaccess;
+package info.cameronlund.gradescrape.parentaccess.constants;
 
 public class ParentAccessPage {
 

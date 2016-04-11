@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.api;
+package info.cameronlund.gradescrape.api.v1.enums;
 
 public enum MarkingPeriod {
 	FIRST("MP1"), SECOND("MP2"), THIRD("MP3"), FOURTH("MP4");

@@ -1,10 +1,12 @@
 package info.cameronlund.gradescrape.parentaccess;
 
 import com.gargoylesoftware.htmlunit.html.*;
-import info.cameronlund.gradescrape.api.AuthenticatedScrapable;
-import info.cameronlund.gradescrape.api.AuthenticationFailedException;
-import info.cameronlund.gradescrape.api.MarkingPeriod;
-import info.cameronlund.gradescrape.user.Student;
+import info.cameronlund.gradescrape.api.v1.enums.MarkingPeriod;
+import info.cameronlund.gradescrape.api.v1.exceptions.AuthenticationFailedException;
+import info.cameronlund.gradescrape.api.v1.scrapables.AuthenticatedScrapable;
+import info.cameronlund.gradescrape.api.v1.user.Student;
+import info.cameronlund.gradescrape.parentaccess.constants.ParentAccessPage;
+import info.cameronlund.gradescrape.parentaccess.constants.ParentAccessXpath;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 	 *
 	 **/
 
+	// Get the classes overall grade
 	public Map<String, Grade> getClassGrades(MarkingPeriod period)
 	{
 		checkAuth();
@@ -73,7 +76,7 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 					DomElement classElement = element.getFirstElementChild().getFirstElementChild();
 					if (classElement == null) continue;
 					if (!classElement.getTextContent().toLowerCase().contains("see all details"))
-						klassen = formatClass(classElement.getTextContent());
+						klassen = classElement.getTextContent();
 				}
 			}
 			if (klassen.length() > 0)
@@ -148,19 +151,4 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 	{
 		return super.hasAuthExpired();
 	}
-
-	/**
-	 *
-	 * Formatting methods
-	 *
-	 */
-
-	private String formatClass(String classRaw)
-	{
-		if (classRaw.contains(" -"))
-			return classRaw.substring(0, classRaw.indexOf(" -"));
-		return classRaw;
-	}
-
-
 }

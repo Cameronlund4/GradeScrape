@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.api;
+package info.cameronlund.gradescrape.api.v1.exceptions;
 
 public class AuthenticationFailedException extends RuntimeException {
 	public AuthenticationFailedException(Class c)

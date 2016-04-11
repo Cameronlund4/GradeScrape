@@ -1,4 +1,4 @@
-package info.cameronlund.gradescrape.parentaccess;
+package info.cameronlund.gradescrape.parentaccess.constants;
 
 public class ParentAccessXpath {
 	public static final String GRADE_MP1 = "//*[@id=\"tabs-2x\"]/div[2]/table/tbody";
