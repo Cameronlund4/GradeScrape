@@ -51,11 +51,23 @@ public abstract class AuthenticatedScrapable extends Scrapable
 		return isAuthenticated;
 	}
 
+	public long getAuthExpireMillis()
+	{
+		return authExpireTimeMillis;
+	}
+
 	// Useful to set the auth state in a return call
 	public boolean setAuthState(boolean authenticated)
 	{
 		isAuthenticated = authenticated;
 		return authenticated;
+	}
+
+	public HtmlPage setAuthState(HtmlPage page, boolean authenticated)
+	{
+		if (setAuthState(authenticated))
+			return page;
+		return null;
 	}
 
 	// Use this any time you know we're safe for another authExpireTimeMillis millis. For example, right when we
@@ -65,13 +77,13 @@ public abstract class AuthenticatedScrapable extends Scrapable
 		lastInteraction = System.currentTimeMillis();
 	}
 
-	// Will authenticate if needed, otherwise return current state
+	// Will authenticate if needed, otherwise return current state.
 	// SHOULD NOT call resetIdleCountdown()
 	public boolean checkAuth()
 	{
 		// If we need to reload our auth status
 		if (hasAuthExpired() || !isAuth())
-			return auth();
+			return checkAuth(auth());
 
 		return isAuth();
 	}
@@ -86,9 +98,15 @@ public abstract class AuthenticatedScrapable extends Scrapable
 
 	// Should return whether or not authentication was successful
 	// SHOULD call resetIdleCountdown()
-	public abstract boolean auth();
+	public abstract HtmlPage auth(final HtmlPage page);
+
+	// Should call auth(HtmlPage) with the default login page
+	public abstract HtmlPage auth();
 
 	// Should return wether or not unauthentication was successful
 	// SHOULD NOT call resetIdleCountdown()
-	public abstract boolean unauth();
+	public abstract HtmlPage unauth(final HtmlPage page);
+
+	// Should call unauth(HtmlPage) with the default login page
+	public abstract HtmlPage unauth();
 }

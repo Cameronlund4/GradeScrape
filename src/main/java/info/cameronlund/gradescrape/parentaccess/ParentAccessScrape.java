@@ -29,22 +29,46 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 	// Get the classes overall grade
 	public Map<String, Grade> getClassGrades(MarkingPeriod period)
 	{
-		checkAuth();
-		resetIdleCountdown();
+		startTimeReadout(); // TODO Remove
 		Map<String, Grade> grades = new HashMap<String, Grade>();
 
+		printTime("step 1"); // TODO Remove
 		// Get the page for grades
-		final HtmlPage page;
+		HtmlPage page;
 		try
 		{
 			page = getPage(ParentAccessPage.GRADES);
-			if (!isPage(page, ParentAccessPage.GRADES)) return grades; // Return if wrong
+			printTime("step 2"); // TODO Remove
+			if (!checkAuth(page))
+			{
+				printTime("step 3"); // TODO Remove
+				page = auth(page);
+			}
+			printTime("step 4"); // TODO Remove
+			if (!checkAuth(page))
+			{
+				printTime("step 5"); // TODO Remove
+				throw new AuthenticationFailedException(this.getClass());
+			}
+			resetIdleCountdown();
+			printTime("step 6"); // TODO Remove
+			if (!isPage(page, ParentAccessPage.GRADES))
+			{
+				page = getPage(ParentAccessPage.GRADES);
+			}
+			if (!isPage(page, ParentAccessPage.GRADES))
+			{
+				System.out.println("Got wrong page: "+page.getUrl());
+				return grades;
+			}
+			printTime("step 7"); // TODO Remove
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 			return grades;
 		}
 
+		printTime("step 8"); // TODO Remove
 		HtmlTableBody markingPeriod = null;
 		if (period == MarkingPeriod.FIRST)
 			markingPeriod = page.getFirstByXPath(ParentAccessXpath.GRADE_MP1);
@@ -54,6 +78,8 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 			markingPeriod = page.getFirstByXPath(ParentAccessXpath.GRADE_MP3);
 		if (period == MarkingPeriod.FOURTH)
 			markingPeriod = page.getFirstByXPath(ParentAccessXpath.GRADE_MP4);
+		printTime("step 9"); // TODO Remove
+
 		for (final DomElement row : markingPeriod.getChildElements())
 		{ // Loop
 			String klassen = "";
@@ -82,6 +108,7 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 			if (klassen.length() > 0)
 				grades.put(klassen, grade);
 		}
+		printTime("step 10"); // TODO Remove
 		return grades;
 	}
 
@@ -92,50 +119,74 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 	 **/
 
 	@Override
-	public boolean auth()
+	public HtmlPage auth(HtmlPage page)
 	{
 		resetIdleCountdown();
 
 		try
 		{
-			final HtmlPage page = getPage(ParentAccessPage.BASE);
-
 			// If we're at the home page
 			if (!checkAuth(page))
 			{
-				// Manipulate the form and get the results
 				final HtmlTextInput userName = (HtmlTextInput) page.getElementById("UserName");
 				final HtmlPasswordInput password = (HtmlPasswordInput) page.getElementById("Password");
 				userName.setValueAttribute(getUsername());
 				password.setValueAttribute(getPassword());
 				final HtmlButton button = page.getFirstByXPath(ParentAccessXpath.LOGIN_BUTTON);
 				final HtmlPage result = button.click();
-
-				// If we're at the planner, we logged in right
-				return setAuthState(isPage(result, ParentAccessPage.PLANNER));
+				return setAuthState(result, checkAuth(result));
 			}
 
-			// If we're at the planner, we logged in right
-			return setAuthState(isPage(page, ParentAccessPage.PLANNER));
+			return setAuthState(page, true);
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		return false;
+		return null;
 	}
 
 	@Override
-	public boolean unauth()
+	public HtmlPage auth()
 	{
 		try
 		{
-			final HtmlPage page = getPage(ParentAccessPage.LOGOUT);
-			return !setAuthState(checkAuth(page));
+			return auth(getPage(ParentAccessPage.BASE, getAuthExpireMillis()));
 		} catch (IOException e)
 		{
 			e.printStackTrace();
+			return null;
 		}
-		return setAuthState(false);
+	}
+
+	public HtmlPage unauth()
+	{
+		try
+		{
+			return unauth(getPage(ParentAccessPage.LOGOUT, getAuthExpireMillis()));
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	@Override
+	public HtmlPage unauth(HtmlPage page)
+	{
+		if (!checkAuth(page))
+			return null;
+		if (page.getUrl().toString().equalsIgnoreCase(ParentAccessPage.LOGOUT))
+			return setAuthState(page, checkAuth(page));
+		try
+		{
+			// TODO Press the 'logout' button
+			throw new IOException(); // To stop errors on the catch
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+
 	}
 
 	@Override
@@ -150,5 +201,19 @@ public class ParentAccessScrape extends AuthenticatedScrapable
 	public boolean hasAuthExpired()
 	{
 		return super.hasAuthExpired();
+	}
+
+	// TODO Remove the following debug tools
+	long lastReadout;
+
+	public void startTimeReadout()
+	{
+		lastReadout = System.currentTimeMillis();
+	}
+
+	public void printTime(String subject)
+	{
+		System.out.println("Task "+subject+" took "+(System.currentTimeMillis()-lastReadout) / 1000D+"s");
+		lastReadout = System.currentTimeMillis();
 	}
 }

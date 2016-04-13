@@ -1,5 +1,7 @@
 package info.cameronlund.bettergrades;
 
+import com.gargoylesoftware.htmlunit.CookieManager;
+import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
@@ -65,11 +67,13 @@ public class HttpPortal {
 		{
 			try
 			{
-				System.out.println("Got weird call to "+exchange.getHttpContext().getPath());
-				System.out.println("Context "+exchange.getHttpContext().getPath()+" responding to "+exchange.getRemoteAddress());
-				exchange.sendResponseHeaders(404, 0);
-				exchange.getResponseBody().close();
-				System.out.println(" - Success!");
+				System.out.println("!-POSSIBLE SECURITY THREAT -!");
+				System.out.println("    Got weird call to "+exchange.getHttpContext().getPath());
+				System.out.println("    Context "+exchange.getHttpContext().getPath()+" ignoring "+exchange.getRemoteAddress());
+				System.out.println("    Request attempt: "+exchange.getRequestURI().getQuery());
+				System.out.println("    Request path: "+exchange.getRequestURI());
+				System.out.println("     - Success!");
+				System.out.println("!-POSSIBLE SECURITY THREAT -!");
 			} catch (Exception e)
 			{
 				e.printStackTrace();
@@ -100,8 +104,14 @@ public class HttpPortal {
 					Map<String, String> args = queryToMap(exchange.getRequestURI().getQuery());
 					String[] studentName = args.get("student").split("\\s");
 					String username = args.get("username");
+					System.out.println("Username: "+args.get("username"));
 					String password = args.get("password");
+					System.out.println("Password: "+args.get("password"));
 					Student student = new Student(studentName[0], studentName[1]);
+					CookieManager cookieManager = student.getCookieManager();
+					cookieManager.setCookiesEnabled(true);
+					cookieManager.addCookie(new Cookie("parentaccess.chclc.org", "SoftwareAnswers.Portal.District", "chps", "/", null, false, true));
+					student.setCookieManager(cookieManager);
 					student.giveCredentials("parent_access", new Credentials(username, password));
 					try
 					{
@@ -109,7 +119,6 @@ public class HttpPortal {
 						{
 							System.out.println(" - Getting their grades");
 							ParentAccessScrape site = new ParentAccessScrape(student);
-							if (!site.checkAuth()) break getData;
 
 							MarkingPeriod[] markingPeriods = new MarkingPeriod[]{
 									MarkingPeriod.FIRST, MarkingPeriod.SECOND, MarkingPeriod.THIRD, MarkingPeriod.FOURTH
@@ -131,7 +140,6 @@ public class HttpPortal {
 								}
 								gradeJson.add(period.getLowName(), grades);
 							}
-							site.unauth();
 							success = true;
 						}
 					} catch (Exception e)

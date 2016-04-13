@@ -26,6 +26,7 @@ public class ScrapeProvider implements HttpHandler {
 		// Write default values
 		response.addProperty("success", success ? "1" : "0");
 		// TODO Write why we failed if we did
+		System.out.println("Took time: "+(System.currentTimeMillis()-start) / 1000D);
 		response.addProperty("time", (System.currentTimeMillis()-start) / 1000D);
 
 		// Response setup

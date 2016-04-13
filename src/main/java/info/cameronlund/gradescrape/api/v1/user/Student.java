@@ -1,5 +1,7 @@
 package info.cameronlund.gradescrape.api.v1.user;
 
+import com.gargoylesoftware.htmlunit.BrowserVersion;
+import com.gargoylesoftware.htmlunit.CookieManager;
 import com.gargoylesoftware.htmlunit.WebClient;
 
 import java.util.HashMap;
@@ -15,7 +17,9 @@ public class Student {
 	{
 		this.firstName = firstName;
 		this.lastName = lastName;
-		client = new WebClient();
+		client = new WebClient(BrowserVersion.CHROME);
+		client.getOptions().setCssEnabled(false);
+		client.getOptions().setJavaScriptEnabled(false);
 	}
 
 	public String getFirstName()
@@ -46,5 +50,15 @@ public class Student {
 	public WebClient getClient()
 	{
 		return client;
+	}
+
+	public CookieManager getCookieManager()
+	{
+		return client.getCookieManager();
+	}
+
+	public void setCookieManager(CookieManager manager)
+	{
+		client.setCookieManager(manager);
 	}
 }

@@ -18,8 +18,7 @@ import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.logging.Level;
 
-public class Scrapable
-{
+public class Scrapable {
 	private final Student student;
 	private HashMap<String, HtmlPage> cache = new HashMap<String, HtmlPage>();
 	private HashMap<String, Long> cachedAge = new HashMap<String, Long>();
@@ -38,7 +37,7 @@ public class Scrapable
 		String[] expected = expectedResult.replace("http://", "").replace("https://", "").split("/");
 		for (int i = 0; i < original.length; i++)
 		{
-			if (i > expected.length - 1) return false; // This causes false if original has more sections than expected
+			if (i > expected.length-1) return false; // This causes false if original has more sections than expected
 			if (expected[i].equalsIgnoreCase("*")) continue;
 			if (!isUrlPartSame(original[i], expected[i]))
 			{
@@ -83,9 +82,12 @@ public class Scrapable
 	// Should really use getPage(String, long) unless you absolutely need a new page
 	public HtmlPage getNewPage(String page) throws IOException
 	{
+		long start = System.currentTimeMillis();
+		System.out.println("-- Getting new page: "+page);
 		HtmlPage htmlPage = getClient().getPage(page);
-		cache.put(page, htmlPage);
-		cachedAge.put(page, System.currentTimeMillis());
+		System.out.println("-- Took: "+(System.currentTimeMillis()-start) / 1000D+"s");
+		cache.put(htmlPage.getUrl().toString(), htmlPage);
+		cachedAge.put(htmlPage.getUrl().toString(), System.currentTimeMillis());
 		return htmlPage;
 	}
 
@@ -94,7 +96,8 @@ public class Scrapable
 		if (cachedAge.containsKey(page))
 		{
 			return cachedAge.get(page);
-		} else return -1;
+		}
+		else return -1;
 	}
 
 	public void clearCache()
@@ -112,7 +115,7 @@ public class Scrapable
 		return getStudent().getClient();
 	}
 
-	// Gets rid of highly annoying console spam from HtmlUnit
+	// Gets rid of highly annoying (and typically useless) console spam from HtmlUnit
 	public void shutup()
 	{
 		LogFactory.getFactory().setAttribute("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
@@ -120,14 +123,12 @@ public class Scrapable
 		java.util.logging.Logger.getLogger("com.gargoylesoftware.htmlunit").setLevel(Level.OFF);
 		java.util.logging.Logger.getLogger("org.apache.commons.httpclient").setLevel(Level.OFF);
 
-		getClient().setIncorrectnessListener(new IncorrectnessListener()
-		{
+		getClient().setIncorrectnessListener(new IncorrectnessListener() {
 			public void notify(String arg0, Object arg1)
 			{
 			}
 		});
-		getClient().setCssErrorHandler(new ErrorHandler()
-		{
+		getClient().setCssErrorHandler(new ErrorHandler() {
 			public void warning(CSSParseException exception) throws CSSException
 			{
 			}
@@ -141,8 +142,7 @@ public class Scrapable
 
 			}
 		});
-		getClient().setJavaScriptErrorListener(new JavaScriptErrorListener()
-		{
+		getClient().setJavaScriptErrorListener(new JavaScriptErrorListener() {
 			public void scriptException(InteractivePage interactivePage, ScriptException e)
 			{
 			}
@@ -159,8 +159,7 @@ public class Scrapable
 			{
 			}
 		});
-		getClient().setHTMLParserListener(new HTMLParserListener()
-		{
+		getClient().setHTMLParserListener(new HTMLParserListener() {
 			public void error(String s, java.net.URL url, String s1, int i, int i1, String s2)
 			{
 			}
